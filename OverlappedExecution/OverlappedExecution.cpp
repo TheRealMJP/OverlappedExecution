@@ -109,7 +109,7 @@ static void ShutdownWorkload(Workload& workload)
 
 OverlappedExecution::OverlappedExecution(const wchar* cmdLine) :  App(L"Overlapped Execution", cmdLine)
 {
-    minFeatureLevel = D3D_FEATURE_LEVEL_12_0;
+    minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 }
 
 void OverlappedExecution::BeforeReset()
