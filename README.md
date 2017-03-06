@@ -1,7 +1,7 @@
 # Overlapped Execution Test Application
 This reposistory containes the code for a DX12 application that can visualize how draw and dispatch calls execute on the GPU. The main purpose is to test the capability of GPU's to overlap shader execution from multiple submissions in the presence (or absence) of transition barriers. The app can also visualize the execution of workloads submited to to DIRECT and COMPUTE queues, as well as the effects of using split barriers. Here's an overview of the application UI:
 
-![alt text](https://mynameismjp.files.wordpress.com/2017/02/testapp_overview1.png)
+![App Overview](https://mynameismjp.files.wordpress.com/2017/02/testapp_overview1.png)
 
 Each red box represents the execution of a single draw or dispatch. The yellow lines represent dependencies, which are expressed as transition barriers. The "Workload Settings" panel can be used to enable or disable different workloads, adjust the number of threads per workload, and/or adjust the amount of per-thread work performed in the shader for that workload.
 
@@ -23,36 +23,36 @@ This is the initial state of the app running on a small selection of consumer GP
 
 ### Nvidia GTX 980:
 
-![alt text](https://mynameismjp.files.wordpress.com/2017/02/gtx980_default.png)
+![Nvidia GTX 980](https://mynameismjp.files.wordpress.com/2017/02/gtx980_default.png)
 
 ### Nvidia GTX 1070:
 
-![alt text](https://mynameismjp.files.wordpress.com/2017/02/gtx1070_0000_default.png)
+![Nvidia GTX 1070](https://mynameismjp.files.wordpress.com/2017/02/gtx1070_0000_default.png)
 
 ### Intel HD 530:
 
-![alt text](https://mynameismjp.files.wordpress.com/2017/02/hd530_0000_default.png)
+![Intel HD 530](https://mynameismjp.files.wordpress.com/2017/02/hd530_0000_default.png)
 
 ### AMD RX 460:
 
-![alt text](https://mynameismjp.files.wordpress.com/2017/02/rx460_0000_default.png)
+![AMD RX 460](https://mynameismjp.files.wordpress.com/2017/02/rx460_0000_default.png)
 
 This is the results shown when no dependencies are specified between workloads, resulting in no barriers being issued between subsequent draw/dispatch calls:
 
 ### Nvidia GTX 980:
 
-![alt text](https://mynameismjp.files.wordpress.com/2017/02/gtx980_nobarriers.png)
+![Nvidia GTX 980](https://mynameismjp.files.wordpress.com/2017/02/gtx980_nobarriers.png)
 
 ### Nvidia GTX 1070:
 
-![alt text](https://mynameismjp.files.wordpress.com/2017/02/gtx1070_0001_nobarriers.png)
+![Nvidia GTX 1070](https://mynameismjp.files.wordpress.com/2017/02/gtx1070_0001_nobarriers.png)
 
 ### Intel HD 530:
 
-![alt text](https://mynameismjp.files.wordpress.com/2017/02/hd530_0001_nobarriers.png)
+![Intel HD 530](https://mynameismjp.files.wordpress.com/2017/02/hd530_0001_nobarriers.png)
 
 ### AMD RX 460:
 
-![alt text](https://mynameismjp.files.wordpress.com/2017/02/rx460_0001_nobarriers.png)
+![AMD RX 460](https://mynameismjp.files.wordpress.com/2017/02/rx460_0001_nobarriers.png)
 
 More results will be presented and discussed in a future blog post.
