@@ -17,6 +17,8 @@ The repository contains a Visual Studio 2015 project and solution file that's re
 
 This app does not use timestamp queries to measure GPU execution time, since their behavior with regards to overlapping executions is not well-defined in the D3D12 documentation. Instead, the shader writes to buffers placed in D3D12\_MEMORY\_POOL\_L0, while the CPU manually monitors the state of those buffers to determine when shader has started and finished. It's entirely possible that some future hardware or a driver update will break an assumption made by this app, and render the results invalid. Either way, I would urge any users of this app to take the results with a large grain of salt, and to only use it for educational purposes.
 
+Also, please keep in mind that overlapping different workloads does not mean that those workloads will execute faster than if they were executed serially. This is especially true when comparing different hardware, and so I would strongly advise against using the results of this app to make broad claims about the performance abilities of hardware from competing vendors.
+
 # Selected results
 
 This is the initial state of the app running on a small selection of consumer GPU's. In the default state, barriers are issued between every subsequent draw or dispatch call issued on each queue. This shows how the GPU executes two independent chains of workloads that are submitted to separate queues.
