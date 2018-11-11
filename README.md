@@ -11,7 +11,7 @@ More complete details on the application as well as more results will be provide
 
 # Build Instructions
 
-The repository contains a Visual Studio 2015 project and solution file that's ready to build on Windows. All external dependencies are included in the repository, so there's no need to download additional libraries. Running the demo requires Windows 10 version 1607, as well as a GPU that supports Feature Level 11_0.
+The repository contains a Visual Studio 2015 project and solution file that's ready to build on Windows. All external dependencies are included in the repository, so there's no need to download additional libraries. Running the demo requires Windows 10 version 1607 (or higher), as well as a GPU that supports Feature Level 11_0.
 
 # DISCLAIMER
 
