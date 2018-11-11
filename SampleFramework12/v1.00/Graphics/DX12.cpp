@@ -111,6 +111,9 @@ void Initialize(D3D_FEATURE_LEVEL minFeatureLevel, uint32 adapterIdx)
             // These happen when capturing with VS diagnostics
             D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
             D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
+
+            // There's a bug in the validation layer that assumes that all desriptor handles are globally unique
+            D3D12_MESSAGE_ID_COPY_DESCRIPTORS_INVALID_RANGES,
         };
 
         D3D12_INFO_QUEUE_FILTER filter = { };
@@ -125,15 +128,21 @@ void Initialize(D3D_FEATURE_LEVEL minFeatureLevel, uint32 adapterIdx)
     #endif
 
     for(uint64 i = 0; i < NumCmdAllocators; ++i)
+    {
         DXCall(Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&CmdAllocators[i])));
+        CmdAllocators[i]->SetName(L"Gfx Command Allocator");
+    }
+
 
     DXCall(Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, CmdAllocators[0], nullptr, IID_PPV_ARGS(&CmdList)));
+    CmdList->SetName(L"Gfx Command List");
     DXCall(CmdList->Close());
 
     D3D12_COMMAND_QUEUE_DESC queueDesc = {};
     queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
     queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     DXCall(Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&GfxQueue)));
+    GfxQueue->SetName(L"Gfx Command Queue");
 
     CurrFrameIdx = CurrentCPUFrame % NumCmdAllocators;
     DXCall(CmdAllocators[CurrFrameIdx]->Reset());

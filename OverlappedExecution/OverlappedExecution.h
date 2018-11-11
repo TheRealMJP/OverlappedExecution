@@ -78,6 +78,7 @@ protected:
     ID3D12RootSignature* workloadRootSignature = nullptr;
     StructuredBuffer workloadInputBuffer;
     StructuredBuffer workloadOutputBuffer;
+    StructuredBuffer computeWorkloadOutputBuffer;
 
     Workload workloads[NumWorkloads];
 
@@ -117,7 +118,7 @@ protected:
     virtual void BeforeFlush() override;
 
     void RenderCompute();
-    void DoComputeWorkload(ID3D12GraphicsCommandList* cmdList, Workload& workload);
+    void DoComputeWorkload(ID3D12GraphicsCommandList* cmdList, Workload& workload, const StructuredBuffer& workloadOutput);
     void DoGraphicsWorkload(Workload& workload);
     void RenderHUD();
     void RenderWorkloadUI();

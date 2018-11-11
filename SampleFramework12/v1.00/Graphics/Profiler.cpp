@@ -56,6 +56,7 @@ void Profiler::Initialize()
         DX12::Device->CreateQueryHeap(&heapDesc, IID_PPV_ARGS(&queryHeap));
 
         readbackBuffer.Initialize(MaxProfiles * DX12::RenderLatency * 2 * sizeof(uint64));
+        readbackBuffer.Resource->SetName(L"Profiler Query Readback Buffer");
     }
 
     profiles.Init(MaxProfiles);

@@ -76,9 +76,11 @@ static void InitWorkload(Workload& workload, const char* name, WorkloadType type
     readbackInit.HeapOffset = 0;
     readbackInit.Name = L"Shader Start Buffer";
     workload.ShaderStartBuffer.Initialize(readbackInit);
+    workload.ShaderStartBuffer.Resource()->SetName(MakeString(L"%s Shader Start Buffer", name).c_str());
 
     readbackInit.HeapOffset = 64 * 1024;
     workload.ShaderEndBuffer.Initialize(readbackInit);
+    workload.ShaderEndBuffer.Resource()->SetName(MakeString(L"%s Shader End Buffer", name).c_str());
 
     DXCall(workload.ShaderStartBuffer.Resource()->Map(0, nullptr, reinterpret_cast<void**>(&workload.ShaderStartData)));
     DXCall(workload.ShaderEndBuffer.Resource()->Map(0, nullptr, reinterpret_cast<void**>(&workload.ShaderEndData)));
@@ -90,6 +92,7 @@ static void InitWorkload(Workload& workload, const char* name, WorkloadType type
     counterBufferInit.CreateUAV = true;
     counterBufferInit.InitialState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
     workload.CounterBuffer.Initialize(counterBufferInit);
+    workload.CounterBuffer.Resource()->SetName(MakeString(L"%s Counter Buffer", name).c_str());
 
     workload.Name = name;
     workload.Type = type;
@@ -143,6 +146,8 @@ void OverlappedExecution::Initialize()
         sbInit.CreateUAV = true;
         sbInit.InitialState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
         workloadOutputBuffer.Initialize(sbInit);
+
+        computeWorkloadOutputBuffer.Initialize(sbInit);
     }
 
     // Make a render target big enough to have 1 texel for every graphics workload thread
@@ -199,18 +204,24 @@ void OverlappedExecution::Initialize()
     {
         // Create resources for submitting on a compute queue
         for(uint64 i = 0; i < DX12::RenderLatency; ++i)
+        {
             DXCall(DX12::Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(&cmdAllocators[i])));
+            cmdAllocators[i]->SetName(L"Compute Command Allocator");
+        }
 
         DXCall(DX12::Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, cmdAllocators[0], nullptr, IID_PPV_ARGS(&computeCmdList)));
+        computeCmdList->SetName(L"Compute Command List");
         DXCall(computeCmdList->Close());
 
         D3D12_COMMAND_QUEUE_DESC queueDesc = {};
         queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
         queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
         DXCall(DX12::Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&computeQueue)));
+        computeQueue->SetName(L"Compute Command Queue");
 
         queueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_HIGH;
         DXCall(DX12::Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&hiPriorityComputeQueue)));
+        hiPriorityComputeQueue->SetName(L"Hi-Priority Compute Command Queue");
 
         DXCall(cmdAllocators[DX12::CurrFrameIdx]->Reset());
         DXCall(computeCmdList->Reset(cmdAllocators[DX12::CurrFrameIdx], nullptr));
@@ -300,6 +311,7 @@ void OverlappedExecution::Shutdown()
     workloadCBuffer.Shutdown();
     workloadInputBuffer.Shutdown();
     workloadOutputBuffer.Shutdown();
+    computeWorkloadOutputBuffer.Shutdown();
     workloadRT.Shutdown();
 }
 
@@ -444,7 +456,7 @@ void OverlappedExecution::Render(const Timer& timer)
         }
 
         if(workload.Type == WorkloadType::Compute)
-            DoComputeWorkload(cmdList, workload);
+            DoComputeWorkload(cmdList, workload, workloadOutputBuffer);
         else if(workload.Type == WorkloadType::Graphics)
             DoGraphicsWorkload(workload);
 
@@ -545,7 +557,7 @@ void OverlappedExecution::RenderCompute()
             dependency.BufferIsReadable = true;
         }
 
-        DoComputeWorkload(cmdList, workload);
+        DoComputeWorkload(cmdList, workload, computeWorkloadOutputBuffer);
 
         if(AppSettings::UseSplitBarriers)
         {
@@ -606,15 +618,14 @@ void OverlappedExecution::RenderCompute()
     DXCall(cmdList->Reset(cmdAllocators[nextFrameIdx], nullptr));
 }
 
-void OverlappedExecution::DoComputeWorkload(ID3D12GraphicsCommandList* cmdList, Workload& workload)
+void OverlappedExecution::DoComputeWorkload(ID3D12GraphicsCommandList* cmdList, Workload& workload, const StructuredBuffer& workloadOutput)
 {
     PIXMarker pixMarker(cmdList, workload.Name);
-    ProfileBlock workloadBlock(cmdList, workload.Name);
 
     cmdList->SetPipelineState(workloadCSPSO);
     cmdList->SetComputeRootSignature(workloadRootSignature);
 
-    D3D12_CPU_DESCRIPTOR_HANDLE handles[] = { workloadInputBuffer.SRV(), workloadOutputBuffer.UAV(),
+    D3D12_CPU_DESCRIPTOR_HANDLE handles[] = { workloadInputBuffer.SRV(), workloadOutput.UAV(),
                                               workload.ShaderStartBuffer.UAV(), workload.ShaderEndBuffer.UAV(),
                                               workload.CounterBuffer.UAV() };
     DX12::BindShaderResources(cmdList, 0, ArraySize_(handles), handles, CmdListMode::Compute);
@@ -637,7 +648,6 @@ void OverlappedExecution::DoGraphicsWorkload(Workload& workload)
     ID3D12GraphicsCommandList* cmdList =  DX12::CmdList;
 
     PIXMarker pixMarker(cmdList, workload.Name);
-    ProfileBlock workloadBlock(cmdList, workload.Name);
 
     DX12::SetViewport(cmdList, workloadRT.Width(), workload.NumGroups);
 
@@ -819,6 +829,23 @@ void OverlappedExecution::RenderWorkloadUI()
 
             ImGui::PopID();
         }
+    }
+
+    if(ImGui::Button("Clear All Dependencies"))
+    {
+        for(Workload& workload : workloads)
+            workload.DependsOn = uint64(-1);
+    }
+
+    if(ImGui::Button("Reset Dependencies To Defaults"))
+    {
+        for(uint64 workloadIdx = 0; workloadIdx < NumWorkloads; ++workloadIdx)
+        {
+            // Default to depending on the previous workload
+            if(workloadIdx > 0 && workloadIdx != ComputeQueueWorkloadA)
+                workloads[workloadIdx].DependsOn = workloadIdx - 1;
+        }
+
     }
 
     ImGui::End();
